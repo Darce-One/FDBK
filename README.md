@@ -37,7 +37,7 @@ Call the SynthDef, Instantiate the instances of left and right, then trigger the
 
 ### System Architecture:
 
-![alt text](FDBKSysArchitecture.png "Title")
+![alt text](docs/FDBKSysArchitecture.png "Title")
 
 ## Editing the scripts:
 
