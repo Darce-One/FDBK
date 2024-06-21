@@ -4,9 +4,9 @@ import numpy as np
 import json
 
 
-folder_path = 'dataset_final'
-json_file_path = 'params_final.json'
-csv_file_path = 'fdbk_dataframe_final.csv'
+folder_path = 'dataset'
+json_file_path = 'params.json'
+csv_file_path_save = 'fdbk_dataframe.csv'
 
 
 file_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
@@ -36,4 +36,4 @@ df = pd.DataFrame(data)
 print(df.head())
 
 
-df.to_csv(csv_file_path, index=False)
+df.to_csv(csv_file_path_save, index=False)

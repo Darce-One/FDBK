@@ -5,7 +5,7 @@ s.boot;
 ("fdbk_synthdef.scd").loadRelative;
 
 
-// The two synthesizer
+// The two synthesizers
 (
 ~leftSynth = Synth.new(\fdbk, [\pan, -1, \input, 0]);
 ~rightSynth = Synth.new(\fdbk, [\pan, 1, \input, 1]);
@@ -52,7 +52,3 @@ OSCdef('\channel1', {
 	    \hfp_freq, msg[10]);
 }, '/channel_1')
 )
-
-
-
-

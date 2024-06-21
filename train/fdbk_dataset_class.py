@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 
-DATAFRAME_PATH = 'fdbk_dataframe_final_normalised.csv'
+DATAFRAME_PATH = 'fdbk_dataframe_normalised.csv'
 NUM_MFCCS = 40
 SAMPLES = 8192
 

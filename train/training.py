@@ -9,7 +9,7 @@ from tqdm import tqdm
 device = torch.device("mps")
 print("Device: " + str(device))
 
-DATAFRAME_PATH = 'fdbk_dataframe_final_normalised.csv'
+DATAFRAME_PATH = 'fdbk_dataframe_normalised.csv'
 BS = 30
 EPOCHS = 10
 LR = 1e-4
@@ -40,7 +40,7 @@ def train():
             if i % 50 == 0:
                 print(f"Epoch: {epoch}, Loss: {loss.item()}")
 
-    torch.save(model.state_dict(), 'final_trained_model.pth')
+    torch.save(model.state_dict(), 'trained_model.pth')
 
 
 

@@ -43,4 +43,4 @@ Call the SynthDef, Instantiate the instances of left and right, then trigger the
 
 It's encouraged that you play around with the synthesis engines to match your sound. We were performing on a piano VST, an augmented kalimba and a contact-miked window.
 
-To do so, you'll need to modify both `.scd` scripts in the same way. Keep track of how many parameters you want to learn, as you'll need to edit (both) `Network.py` scripts to have the layer count to match that number.
+To do so, you'll need to modify the `fdbk_synthdef.scd` script with the new synthesiser. Make sure to edit the necessary variables in the other two `.scd` scripts to match your changes. Keep track of how many parameters you want to learn, as you'll need to edit both `Network.py` scripts to have the layer count to match that number.
