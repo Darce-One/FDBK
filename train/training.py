@@ -20,7 +20,7 @@ def initialize_weights(m):
         nn.init.zeros_(m.bias)
 
 
-def main():
+def train():
     model = Network().to(device)
     model.apply(initialize_weights)
     dataloader = FDBK_Dataset(DATAFRAME_PATH)
@@ -45,4 +45,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    train()
