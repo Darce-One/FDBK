@@ -35,6 +35,10 @@ To perform, you'll need to run audioStream.py, which will listen to your default
 You then use the `fdbk_perform.scd` SuperCollider script.
 Call the SynthDef, Instantiate the instances of left and right, then trigger the OSC Listeners at the bottom.
 
+### System Architecture:
+
+![alt text](FDBKSysArchitecture.png "Title")
+
 ## Editing the scripts:
 
 It's encouraged that you play around with the synthesis engines to match your sound. We were performing on a piano VST, an augmented kalimba and a contact-miked window.
