@@ -1,1 +1,5 @@
-
+samples/
+*.csv
+*.json
+*__pycache__/
+*.pth
