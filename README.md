@@ -12,9 +12,19 @@ Musicians: Luca Forcucci and Laura Lopez.
 
 Python 3.10 and SuperCollider.
 
+SuperCollider Library: FluCoMa.
+
 Python libraries: Numpy, Librosa, Essentia, PyTorch, TQDM, Pandas, Einops.
 
-SuperCollider Library: FluCoMa.
+If using conda, the simplest way to get your environment running is to use the `environment.yml` file like so:
+
+`conda env create -f environment.yml`
+
+This will create a conda environment on your machine called FDBK. Activate it as you would other envs:
+
+`conda activate FDBK`.
+
+note that you'll still have to install FluCoMa in Supercollider.
 
 ## Usage
 
