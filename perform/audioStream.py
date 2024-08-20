@@ -8,31 +8,59 @@ import einops
 import essentia
 import essentia.standard as es
 import torch
-from network import Network
+from ..train.network import Network
+import argparse
 
 
 SAMPLE_RATE = 44100
-BLOCK_SIZE = 2048 * 4
-CHANNELS = 2
-MODEL_PATH = 'final_trained_model.pth'
+BLOCK_SIZE = 2048 * 1
+CHANNELS = 1
+MODEL_PATH = 'trained_model.pth'
+# Mode possibilities: 'mfcc', 'feature'
+MODE = 'mfcc'
 
 class AudioProcessor():
-    def __init__(self, sample_rate: int, n_mfcc: int = 40) -> None:
+    def __init__(self, sample_rate: int, block_size:int, num_channels:int, mode:str) -> None:
         self.sample_rate: int = sample_rate
-        self.n_mfcc = n_mfcc
+        self.block_size = block_size
+        self.num_channels = num_channels
+        self.mode = mode
+        self.n_mfcc = 40
         self.client = udp_client.SimpleUDPClient("127.0.0.1", 57120)
         self.model = Network()
         self.model.load_state_dict(torch.load(MODEL_PATH))
         self.model.eval()
         self.w = es.Windowing(type='hann')
-        self.spectrum = es.Spectrum()
+        self.spectrum = es.Spectrum(size=self.block_size)
+        self.spectral_peaks = es.SpectralPeaks(maxPeaks=10, minFrequency=30, sampleRate=self.sample_rate) #https://essentia.upf.edu/reference/std_SpectralPeaks.html
         self.pitch_detect = es.PitchYinFFT()
 
-    def prepare_to_play(self) -> None:
-        pass
+    def extract_features(self, audio) -> np.ndarray:
+        features = np.array([])
+        if self.mode == 'mfcc':
+            features = librosa.feature.mfcc(y=audio, sr=self.sample_rate,
+                n_mfcc=self.n_mfcc, win_length=self.block_size,
+                hop_length=self.block_size+2, n_fft=self.block_size)
+        elif self.mode == 'feature':
+            # TODO: Extract features here and fewer MFCCs.
+            #
+            # https://essentia.upf.edu/reference/std_LPC.html
+            # FlatnessDB, HFC,
+            spectrum = self.spectrum(self.w(audio))
+            freqs, mags = self.spectral_peaks(spectrum)
+            mfcc_bands, mfcc_coeffs = es.array(es.MFCC(spectrum)).T
+            spectral_contrast, _ = es.SpectralContrast(spectrum)
+            inharmonicity = es.Inharmonicity(freqs, mags)
+            dissonance = es.Dissonance(freqs, mags)
+            pitch_salience = es.PitchSalience(spectrum)
+            flatness = es.Flatness(spectrum)
+            raise NotImplementedError
+        return features
+
+
 
     def process_block(self, buffer: np.ndarray) -> None:
-        if len(buffer) == 2*BLOCK_SIZE:
+        if len(buffer) == 2*self.block_size:
             audio = np.vstack((buffer[::2], buffer[1::2]))
         else:
             audio = np.transpose(buffer[:, np.newaxis])
@@ -40,13 +68,13 @@ class AudioProcessor():
         channel_params = np.zeros((audio.shape[0], 10))
 
         for iter, channel in enumerate(audio):
-            mfcc = librosa.feature.mfcc(y=channel, sr=self.sample_rate, n_mfcc=self.n_mfcc, win_length=BLOCK_SIZE, hop_length=BLOCK_SIZE+2, n_fft=BLOCK_SIZE)
+            features = self.extract_features(channel)
 
             buf_spec = self.spectrum(self.w(channel))
             f0 = self.pitch_detect(buf_spec)[0]
-            params = self.model(torch.tensor(mfcc.reshape(1, 40)))
+            params = self.model(torch.tensor(features.reshape(1, 40)))
 
-            channel_params[(iter + 1) % 2, 0] = float(f0)
+            channel_params[(iter + 1) % self.num_channels, 0] = float(f0)
             channel_params[iter, 1] = float(params[0][0])
             channel_params[iter, 2] = float(params[0][1])
             channel_params[iter, 3] = float(params[0][2])
@@ -57,7 +85,7 @@ class AudioProcessor():
             channel_params[iter, 8] = float(params[0][7] * 4950 + 50)
             channel_params[iter, 9] = float(params[0][8] * 4950 + 50)
 
-        for iter in range(CHANNELS):
+        for iter in range(self.num_channels):
             address = f"/channel_{iter}"  # OSC address pattern
             msg = osc_message_builder.OscMessageBuilder(address=address)
 
@@ -69,36 +97,27 @@ class AudioProcessor():
             # Step 3: Send the OSC message
             self.client.send(msg)
 
-
-
-        # mfcc = librosa.feature.mfcc(y=buffer, sr=self.sample_rate, n_mfcc=self.n_mfcc, win_length=8192, hop_length=8194, n_fft=8192)
-        # get F0
-        # buf_spec = self.spectrum(self.w(buffer))
-        # f0 = self.pitch_detect(buf_spec)[0]
-
-        # Run through model
-        # params = self.model(torch.tensor(mfcc.reshape(1, 40)))
-        # address = "/test"  # OSC address pattern
-        # msg = osc_message_builder.OscMessageBuilder(address=address)
-        # msg.add_arg(float(params[0][0] * 2950 + 50))  # Add an argument to the message
-        # msg.add_arg(float(f0))
-        # msg.add_arg(float(params[0][1]))
-        # msg.add_arg(float(params[0][2]))
-        # msg.add_arg(float(params[0][3] * 9 + 1))
-        # msg.add_arg(float(params[0][4] * 2 + 1))
-        # msg.add_arg(float(params[0][5]))
-        # msg.add_arg(float(params[0][6] * 4900 + 100))
-
-        # msg = msg.build()  # Build the message
-
-        # Step 3: Send the OSC message
-        # self.client.send(msg)
+def map_range(value, old_min=0, old_max=1, new_min=0, new_max=1):
+    # This function linearly maps a value from one range to another
+    norm_val = (value - old_min) / (old_max - old_min)
+    scaled_arr = norm_val * (new_max - new_min) + new_min
+    return scaled_arr
 
 
 
 def main():
+    # Define arguments
+    parser = argparse.ArgumentParser(description="FDBK")
+    parser.add_argument('-s', '--sample_rate', type=int, default=44100, help="sets the project sample rate")
+    parser.add_argument('-b', '--block_size', type=int, default=2048, help="sets the project block_size. Make sure to use a multiple of 2")
+    parser.add_argument('-c', '--channel_count', type=int, default=2, help="number of channels")
+    parser.add_argument('-m', '--mode', choices=['mfcc', 'feature'], help="choose between the 'mfcc' and 'feature' mode")
+
+    # Parse args
+    args = parser.parse_args()
+
     # instanciate the Audio Processor
-    audio_processor = AudioProcessor(SAMPLE_RATE)
+    audio_processor = AudioProcessor(args.sample_rate, args.block_size, args.channel_count, args.mode)
 
     # Function to process audio data in real-time
     def process_audio(in_data, frame_count, time_info, status):
