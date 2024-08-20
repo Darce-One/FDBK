@@ -5,7 +5,7 @@ s.boot;
 (
 ~p_all = 5000; // specify the number of generated samples
 ~duration = 0.19; // specify the duration of the generated samples
-~sound_folder_name = "dataset"; // dataset folder should be placed in the same folder as this file
+~sound_folder_name = "samples"; // dataset folder should be placed in the same folder as this file
 ~json_file_name = "params"; // params file will be created in the same folder as this file
 )
 

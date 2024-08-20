@@ -4,9 +4,9 @@ import time
 import torch.nn as nn
 
 
-N_MFCCs = 40
-
 device = torch.device("mps")
+in_features = 50
+out_features = 8
 
 
 class LinearBlock(nn.Module):
@@ -37,25 +37,27 @@ class LinearBlock(nn.Module):
 
 
 class Network(nn.Module):
-    def __init__(self):
+    def __init__(self, in_features, out_features):
         super(Network, self).__init__()
 
-        self.layer1 = LinearBlock(N_MFCCs, 100, 0.2, 'leaky_relu')
-        self.layer2 = LinearBlock(100, 30, 0.2, 'leaky_relu')
-        self.layer3 = LinearBlock(30, 9, 0, 'none')
-
+        self.layer1 = LinearBlock(in_features, 70, 0.1, 'tanh')
+        self.layer2 = LinearBlock(70, 50, 0.1, 'leaky_relu')
+        self.layer3 = LinearBlock(50, 35, 0.1, 'leaky_relu')
+        self.layer4 = LinearBlock(35, 20, 0.1, 'leaky_relu')
+        self.layer5 = LinearBlock(20, out_features, 0, 'leaky_relu')
         self.sigmoid = torch.nn.Sigmoid()
 
     def forward(self, x):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.layer5(x)
         x = self.sigmoid(x)
         return x
 
 
 
-
 if __name__ == "__main__":
-    model = Network().to(device)
+    model = Network(in_features, out_features).to(device)
     print(sum(p.numel() for p in model.parameters() if p.requires_grad))

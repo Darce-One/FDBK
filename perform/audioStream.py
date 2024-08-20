@@ -30,31 +30,44 @@ class AudioProcessor():
         self.model = Network()
         self.model.load_state_dict(torch.load(MODEL_PATH))
         self.model.eval()
+
+        # Essentia algorithm instances defined here to save memory
         self.w = es.Windowing(type='hann')
         self.spectrum = es.Spectrum(size=self.block_size)
         self.spectral_peaks = es.SpectralPeaks(maxPeaks=10, minFrequency=30, sampleRate=self.sample_rate) #https://essentia.upf.edu/reference/std_SpectralPeaks.html
         self.pitch_detect = es.PitchYinFFT()
+        self.mfcc = es.MFCC(numberCoefficients=self.n_mfcc)
+        self.spectral_contrast = es.SpectralContrast()
+        self.inharmonicity = es.Inharmonicity()
+        self.dissonance = es.Dissonance()
+        self.pitch_salience = es.PitchSalience()
+        self.flatness = es.Flatness()
 
     def extract_features(self, audio) -> np.ndarray:
         features = np.array([])
+        spectrum = self.spectrum(self.w(audio))
         if self.mode == 'mfcc':
+            """
             features = librosa.feature.mfcc(y=audio, sr=self.sample_rate,
                 n_mfcc=self.n_mfcc, win_length=self.block_size,
                 hop_length=self.block_size+2, n_fft=self.block_size)
+            """
+            _, features = self.mfcc(spectrum)
         elif self.mode == 'feature':
             # TODO: Extract features here and fewer MFCCs.
             #
             # https://essentia.upf.edu/reference/std_LPC.html
             # FlatnessDB, HFC,
-            spectrum = self.spectrum(self.w(audio))
             freqs, mags = self.spectral_peaks(spectrum)
-            mfcc_bands, mfcc_coeffs = es.array(es.MFCC(spectrum)).T
-            spectral_contrast, _ = es.SpectralContrast(spectrum)
-            inharmonicity = es.Inharmonicity(freqs, mags)
-            dissonance = es.Dissonance(freqs, mags)
-            pitch_salience = es.PitchSalience(spectrum)
-            flatness = es.Flatness(spectrum)
-            raise NotImplementedError
+            # CHECK THE SHAPE OF ALL THESE THINGS
+            _, mfcc = self.mfcc(spectrum)
+            spectral_contrast, _ = self.spectral_contrast(spectrum)
+            inharmonicity = self.inharmonicity(freqs, mags)
+            dissonance = self.dissonance(freqs, mags)
+            pitch_salience = self.pitch_salience(spectrum)
+            flatness = self.flatness(spectrum)
+            # concat everything into a single array
+            return np.concatenate((mfcc, spectral_contrast, [inharmonicity, dissonance, pitch_salience, flatness]))
         return features
 
 
@@ -72,7 +85,18 @@ class AudioProcessor():
 
             buf_spec = self.spectrum(self.w(channel))
             f0 = self.pitch_detect(buf_spec)[0]
-            params = self.model(torch.tensor(features.reshape(1, 40)))
+            params = self.model(torch.tensor(features).unsqueeze(0)) #corrected the reshaping
+
+            """
+            fund = exprand(50.0, 2000.0);
+    		amp_ratio = rrand(0.5, 10.0);
+    		fm_ratio = rrand(0.25, 5.0);
+    		fm_index = rrand(0.0, 2.0);
+    		pnoise_amp = rrand(0.0, 1.0);
+    		lpf_freq = exprand(50, 5000.0);
+    		hpf_freq = exprand(50.0, 5000.0);
+    		osc_fm_ratio = rrand(0.05, 0.95);
+    		"""
 
             channel_params[(iter + 1) % self.num_channels, 0] = float(f0)
             channel_params[iter, 1] = float(params[0][0])
