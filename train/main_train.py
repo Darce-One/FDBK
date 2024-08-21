@@ -114,7 +114,7 @@ def train(dataset, mode):
             if i % 50 == 0:
                 print(f"Epoch: {epoch}, Loss: {loss.item()}")
 
-    torch.save(model.state_dict(), f'trained_model_{mode}.pth')
+    torch.save(model.state_dict(), f"dataset/trained_model_{mode}.pth")
     return model
 
 
