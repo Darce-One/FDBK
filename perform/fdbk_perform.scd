@@ -47,7 +47,7 @@ OSCdef('\channel0', {
 		\pnoise_amp, msg[5],
 		\lpf_freq, msg[6],
 		\hpf_freq, msg[7],
-		\osc_fm_ratio, msg[8];
+		\osc_fm_ratio, msg[8]);
 }, '/channel_0')
 );
 
@@ -65,7 +65,7 @@ OSCdef('\channel1', {
 		\pnoise_amp, msg[5],
 		\lpf_freq, msg[6],
 		\hpf_freq, msg[7],
-		\osc_fm_ratio, msg[8];
+		\osc_fm_ratio, msg[8]);
 }, '/channel_1')
 )
 
