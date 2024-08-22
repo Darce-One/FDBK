@@ -17,20 +17,20 @@ class FDBK_Dataset(Dataset):
 
 
         # Essentia algorithm instances defined here to save memory
-        self.w = es.Windowing(type='hann')
+        self.w = es.Windowing(type='hann', size=self.block_size)
         self.spectrum = es.Spectrum(size=self.block_size)
         self.spectral_peaks = es.SpectralPeaks(maxPeaks=10, minFrequency=30, sampleRate=self.sample_rate) #https://essentia.upf.edu/reference/std_SpectralPeaks.html
-        self.pitch_detect = es.PitchYinFFT()
-        self.mfcc = es.MFCC(numberCoefficients=NUM_MFCCS)
-        self.spectral_contrast = es.SpectralContrast()
+        self.pitch_detect = es.PitchYinFFT(sampleRate=self.sample_rate, frameSize=self.block_size)
+        self.mfcc = es.MFCC(numberCoefficients=NUM_MFCCS, inputSize=int(self.block_size/2)+1)
+        self.spectral_contrast = es.SpectralContrast(sampleRate=self.sample_rate, frameSize=self.block_size)
         self.inharmonicity = es.Inharmonicity()
         self.dissonance = es.Dissonance()
-        self.pitch_salience = es.PitchSalience()
+        self.pitch_salience = es.PitchSalience(sampleRate=self.sample_rate)
         self.flatness = es.Flatness()
 
 
     def _load_audio(self, path):
-        y, sr = librosa.load(path, sr=self.sample_rate)
+        y, sr = librosa.load(path, sr=self.sample_rate, dtype=np.float32)
         return y, sr
 
     def _extract_features(self, y):
@@ -54,9 +54,9 @@ class FDBK_Dataset(Dataset):
 
     def _resize_if_necessary(self, audio, shape):
         if audio.size < shape:
-            zeros = np.zeros((shape))
+            print("found short sample in dataset, only a problem if frequent")
+            zeros = np.zeros((shape), dtype=np.float32)
             zeros[:audio.size] += audio
-            # audio = np.pad(audio, ((0, 0), (shape - audio.size)), mode='constant')
             audio = zeros
         else:
             audio = audio[:shape]

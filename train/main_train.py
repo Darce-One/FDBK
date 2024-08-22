@@ -14,8 +14,7 @@ import numpy as np
 from fdbk_dataset_class import FDBK_Dataset
 from network import Network
 
-device = torch.device("mps")
-print("Device: " + str(device))
+
 
 
 SAMPLES_PATH = './dataset/samples'
@@ -86,7 +85,7 @@ def initialize_weights(m):
         nn.init.zeros_(m.bias)
 
 
-def train(dataset, mode):
+def train(dataset, mode, device):
     in_features = 0
     out_features = OUT_FEATURES
     if mode == 'mfcc':
@@ -119,7 +118,8 @@ def train(dataset, mode):
 
 
 def test(model, dataset):
-    model.eval()
+    device = torch.device("cpu")
+    model.to(device).eval()
     loss_func = nn.HuberLoss()
     test_loader = DataLoader(dataset, batch_size=BS, shuffle=True, drop_last=True)
     cum_loss = 0
@@ -142,15 +142,25 @@ def main():
     parser.add_argument('-s', '--sample_rate', type=int, default=44100, help="sets the project sample rate")
     parser.add_argument('-b', '--block_size', type=int, default=2048, help="sets the project block_size. Make sure to use a multiple of 2")
     parser.add_argument('-m', '--mode', choices=['mfcc', 'feature'], help="choose between the 'mfcc' and 'feature' mode")
+    parser.add_argument('--cpu', action='store_true', help="use this flag to train on cpu or if not on an m-series Mac")
     args = parser.parse_args()
     assert args.mode is not None, "Please choose a mode using '-m' or '--mode', with one of the following options: ['mfcc', 'feature']"
+
+    if args.cpu == False:
+        try:
+            device = torch.device("mps")
+            print("Training on GPU")
+        except:
+            raise ValueError("couldn't initialise GPU, please use the --cpu flag to train on CPU instead")
+    else:
+        device = torch.device("cpu")
 
     create_dataframe(os.path.abspath(SAMPLES_PATH), os.path.abspath(JSON_FILE_PATH), os.path.abspath(CSV_FILE_PATH))
     normalize_dataframe(CSV_FILE_PATH, NORM_CSV_FILE_PATH)
 
     dataset = FDBK_Dataset(NORM_CSV_FILE_PATH, args.sample_rate, args.block_size, mode=args.mode)
     train_dataset, test_dataset = random_split(dataset, [0.9, 0.1])
-    trained_model = train(train_dataset, mode=args.mode)
+    trained_model = train(train_dataset, mode=args.mode, device=device)
     avg_loss = test(trained_model, test_dataset)
     print(f'average loss: {avg_loss}')
     print("Note that this loss is to be interpreted in context with other training runs. It is not an objective metric")

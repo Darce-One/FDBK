@@ -31,15 +31,15 @@ class AudioProcessor():
         self.model.eval()
 
         # Essentia algorithm instances defined here to save memory
-        self.w = es.Windowing(type='hann')
+        self.w = es.Windowing(type='hann', size=self.block_size)
         self.spectrum = es.Spectrum(size=self.block_size)
         self.spectral_peaks = es.SpectralPeaks(maxPeaks=10, minFrequency=30, sampleRate=self.sample_rate) #https://essentia.upf.edu/reference/std_SpectralPeaks.html
-        self.pitch_detect = es.PitchYinFFT()
-        self.mfcc = es.MFCC(numberCoefficients=self.n_mfcc)
-        self.spectral_contrast = es.SpectralContrast()
+        self.pitch_detect = es.PitchYinFFT(sampleRate=self.sample_rate, frameSize=self.block_size)
+        self.mfcc = es.MFCC(numberCoefficients=NUM_MFCCS, inputSize=int(self.block_size/2)+1)
+        self.spectral_contrast = es.SpectralContrast(sampleRate=self.sample_rate, frameSize=self.block_size)
         self.inharmonicity = es.Inharmonicity()
         self.dissonance = es.Dissonance()
-        self.pitch_salience = es.PitchSalience()
+        self.pitch_salience = es.PitchSalience(sampleRate=self.sample_rate)
         self.flatness = es.Flatness()
 
     def extract_features(self, audio) -> np.ndarray:
