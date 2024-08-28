@@ -27,7 +27,7 @@ class AudioProcessor():
             self.in_features = 51
         self.out_features = 7
         self.model = Network(self.in_features, self.out_features)
-        self.model.load_state_dict(torch.load(f"dataset/trained_model_{mode}.pth"))
+        self.model.load_state_dict(torch.load(f"trained_models/trained_model_{mode}.pth"))
         self.model.eval()
 
         # Essentia algorithm instances defined here to save memory
