@@ -3,4 +3,4 @@ samples/
 *.json
 *__pycache__/
 *.pth
-*.DS_Store
+*.DS_Store/
