@@ -35,12 +35,11 @@ When done, you should have a folder of audio files and an accompanying parameter
 
 ### Preprocessing and training:
 
-You need to preprocess the audio using `create_dataframe.py` then `normalise_dataframe.py`, making sure to edit the pathnames in the headers.
-You can then proceed to training using `training.py`.
+To train a model on your newly created dataset, you'll need to run the `main_train.py`script inside the `train/` directory.
 
 ### Performing:
 
-To perform, you'll need to run audioStream.py, which will listen to your default audio input device, and send messages over OSC.
+To perform, you'll need to run `audioStream.py`, which will listen to your default audio input device, and send messages over OSC.
 
 You then use the `fdbk_perform.scd` SuperCollider script.
 Call the SynthDef, Instantiate the instances of left and right, then trigger the OSC Listeners at the bottom.
