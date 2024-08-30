@@ -40,11 +40,11 @@ class Network(nn.Module):
     def __init__(self, in_features, out_features):
         super(Network, self).__init__()
 
-        self.layer1 = LinearBlock(in_features, 70, 0.1, 'tanh')
-        self.layer2 = LinearBlock(70, 50, 0.1, 'leaky_relu')
-        self.layer3 = LinearBlock(50, 35, 0.1, 'leaky_relu')
-        self.layer4 = LinearBlock(35, 20, 0.1, 'leaky_relu')
-        self.layer5 = LinearBlock(20, out_features, 0, 'leaky_relu')
+        self.layer1 = LinearBlock(in_features, 140, 0.1, 'leaky_relu')
+        self.layer2 = LinearBlock(140, 90, 0.1, 'leaky_relu')
+        self.layer3 = LinearBlock(90, 50, 0.1, 'leaky_relu')
+        self.layer4 = LinearBlock(50, 30, 0, 'tanh')
+        self.layer5 = LinearBlock(30, out_features, 0, 'none')
         self.sigmoid = torch.nn.Sigmoid()
 
     def forward(self, x):

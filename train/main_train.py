@@ -14,7 +14,8 @@ import numpy as np
 from fdbk_dataset_class import FDBK_Dataset
 from network import Network
 
-
+device = torch.device("mps")
+print("Device: " + str(device))
 
 
 SAMPLES_PATH = './dataset/samples'
@@ -23,9 +24,9 @@ CSV_FILE_PATH = './dataset/fdbk_dataframe.csv'
 NORM_CSV_FILE_PATH = './dataset/fdbk_dataframe_normalised.csv'
 
 BS = 30
-EPOCHS = 2
+EPOCHS = 150
 LR = 1e-4
-IN_FEATURES = 50
+IN_FEATURES = 90
 OUT_FEATURES = 7
 
 
@@ -85,19 +86,21 @@ def initialize_weights(m):
         nn.init.zeros_(m.bias)
 
 
-def train(dataset, mode, device):
+def train(dataset, mode):
     in_features = 0
     out_features = OUT_FEATURES
     if mode == 'mfcc':
         in_features = 40
     elif mode == 'feature':
-        in_features = 50
+        in_features = 90
     model = Network(in_features+1, out_features).to(device)
+    print(f'PARAM NUMS: {sum(p.numel() for p in model.parameters() if p.requires_grad)}')
     model.apply(initialize_weights)
     model.train()
     train_loader = DataLoader(dataset, batch_size=BS, shuffle=True, drop_last=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)
     loss_func = nn.HuberLoss()
+    #loss_func = nn.MSELoss()
 
 
     for epoch in range(EPOCHS):
@@ -111,56 +114,71 @@ def train(dataset, mode, device):
             loss.backward()
             optimizer.step()
             if i % 50 == 0:
-                print(f"Epoch: {epoch}, Loss: {loss.item()}")
+                print(y_pred[0])
+            
+        print(f"Epoch: {epoch}, Loss: {loss.item()}")
 
-    torch.save(model.state_dict(), f"trained_models/trained_model_{mode}.pth")
+    torch.save(model.state_dict(), f"dataset/trained_model_{mode}6.pth")
     return model
 
 
 def test(model, dataset):
-    device = torch.device("cpu")
-    model.to(device).eval()
-    loss_func = nn.HuberLoss()
+    model.eval()
+    loss_func = nn.MSELoss()
     test_loader = DataLoader(dataset, batch_size=BS, shuffle=True, drop_last=True)
-    cum_loss = 0
-    avg_loss = 0
+    '''cum_loss = 0
+    avg_loss = 0'''
+
+    total_mse = 0.0
+    total_mae = 0.0
+    y_true_list = []
+    y_pred_list = []
 
     with torch.no_grad():
         for i, (x, y) in tqdm(enumerate(test_loader)):
             x, y = x.to(device), y.to(device)
             x = torch.cat((x, y[:, 0].unsqueeze(1)), dim=1) # include original f0 in the feature vector
             y_pred = model(x)
-            loss = loss_func(y_pred, y[:, 1:])
-            cum_loss += loss
-            avg_loss = cum_loss / i
+            #loss = loss_func(y_pred, y[:, 1:])
+            mse = loss_func(y_pred, y[:, 1:])
+            mae = torch.mean(torch.abs(y_pred - y[:, 1:]))
+            
+            y_true_list.append(y[:, 1:])
+            y_pred_list.append(y_pred)
+            
+            total_mse += mse.item()
+            total_mae += mae.item()
 
-    return avg_loss
+    avg_mse = total_mse / len(test_loader)
+    avg_mae = total_mae / len(test_loader)
+
+    y_true = torch.cat(y_true_list)
+    y_pred = torch.cat(y_pred_list)
+    ss_total = torch.sum((y_true - torch.mean(y_true)) ** 2)
+    ss_residual = torch.sum((y_true - y_pred) ** 2)
+    r2_score = 1 - (ss_residual / ss_total)
+    
+    print(f"Mean Squared Error: {avg_mse:.4f}")
+    print(f"Mean Absolute Error: {avg_mae:.4f}")
+    print(f"R-squared: {r2_score:.4f}")
+
+    return r2_score
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--sample_rate', type=int, default=44100, help="sets the project sample rate")
     parser.add_argument('-b', '--block_size', type=int, default=2048, help="sets the project block_size. Make sure to use a multiple of 2")
-    parser.add_argument('-m', '--mode', choices=['mfcc', 'feature'], help="choose between the 'mfcc' and 'feature' mode")
-    parser.add_argument('--cpu', action='store_true', help="use this flag to train on cpu or if not on an m-series Mac")
+    parser.add_argument('-m', '--mode', choices=['mfcc', 'feature'], default='feature', help="choose between the 'mfcc' and 'feature' mode")
     args = parser.parse_args()
     assert args.mode is not None, "Please choose a mode using '-m' or '--mode', with one of the following options: ['mfcc', 'feature']"
-
-    if args.cpu == False:
-        try:
-            device = torch.device("mps")
-            print("Training on GPU")
-        except:
-            raise ValueError("couldn't initialise GPU, please use the --cpu flag to train on CPU instead")
-    else:
-        device = torch.device("cpu")
 
     create_dataframe(os.path.abspath(SAMPLES_PATH), os.path.abspath(JSON_FILE_PATH), os.path.abspath(CSV_FILE_PATH))
     normalize_dataframe(CSV_FILE_PATH, NORM_CSV_FILE_PATH)
 
     dataset = FDBK_Dataset(NORM_CSV_FILE_PATH, args.sample_rate, args.block_size, mode=args.mode)
     train_dataset, test_dataset = random_split(dataset, [0.9, 0.1])
-    trained_model = train(train_dataset, mode=args.mode, device=device)
+    trained_model = train(train_dataset, mode=args.mode)
     avg_loss = test(trained_model, test_dataset)
     print(f'average loss: {avg_loss}')
     print("Note that this loss is to be interpreted in context with other training runs. It is not an objective metric")

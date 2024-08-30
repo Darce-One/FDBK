@@ -3,7 +3,7 @@
 s.boot;
 
 (
-~p_all = 5000; // specify the number of generated samples
+~p_all = 15000; // specify the number of generated samples
 ~duration = 0.19; // specify the duration of the generated samples
 ~sound_folder_name = "samples"; // dataset folder should be placed in the same folder as this file
 ~json_file_name = "params"; // params file will be created in the same folder as this file
@@ -16,10 +16,10 @@ s.waitForBoot{
 	~paramsbuf = Buffer.loadCollection(s,[0, 0, 0, 0, 0, 0, 0, 0]);
 	~ds_params = FluidDataSet(s);
 
-	("/fdbk_synthdef.scd").loadRelative;
+	("fdbk_synthdef.scd").loadRelative;
 	s.sync;
 
-	~synthgen = Synth.new(\fdbk, [\dry_env, 1, \lag_t, 0, \delay_t, 0])}
+	~synthgen = Synth.new(\fdbk_train, [\dry_env, 1, \lag_t, 0, \delay_t, 0])}
 )
 
 
@@ -38,8 +38,8 @@ fork{
 		fm_ratio = rrand(0.25, 5.0);
 		fm_index = rrand(0.0, 2.0);
 		pnoise_amp = rrand(0.0, 1.0);
-		lpf_freq = exprand(fund, 5000.0);
-		hpf_freq = exprand(50.0, fund);
+		lpf_freq = rrand(fund, 5000.0);
+		hpf_freq = rrand(50.0, fund);
 		osc_fm_ratio = rrand(0.05, 0.95);
 
 
