@@ -1,4 +1,4 @@
-(
+
 SynthDef.new(\fdbk, {
 	|
 	fund = 440,
@@ -10,18 +10,19 @@ SynthDef.new(\fdbk, {
 	hpf_freq = 100,
 	osc_fm_ratio = 0.5,
 
-	pan = 0,
-	input = 0,
+	in_chan = 0,
 	dry_env = 1,
 	global_amp = 1,
 	verb_mix = 0,
+	out_chan = 0,
 
+	mix = 0,
 	lag_t = 0,
 	delay_t = 0
 	|
 
 	var l_fund, l_amp_ratio, l_fm_ratio, l_fm_index, l_pnoise_amp, l_lpf_freq, l_hpf_freq, l_osc_fm_ratio;
-	var harm, mod, fm, noise, lpf, hpf, mixer, env_follow, sig, delayed_sig, verb, out;
+	var harm, mod, fm, noise, lpf, hpf, sum, env_follow, sig, delayed_sig, verb, mixer, out;
 
 	l_fund = fund.lag(lag_t);
 	l_amp_ratio = amp_ratio.lag(lag_t);
@@ -59,19 +60,20 @@ SynthDef.new(\fdbk, {
 
 	noise = PinkNoise.ar(l_pnoise_amp);
 
-	mixer = (harm * l_osc_fm_ratio) + (fm * (1-l_osc_fm_ratio)) + noise;
+	sum = (harm * l_osc_fm_ratio) + (fm * (1-l_osc_fm_ratio)) + noise;
 
-	lpf = LPF.ar(mixer, l_lpf_freq);
+	lpf = LPF.ar(sum, l_lpf_freq);
 	hpf = HPF.ar(lpf, l_hpf_freq);
 
-	env_follow = Amplitude.kr(SoundIn.ar(input)).lag(0.01);
-	sig = (hpf * dry_env) + (hpf * (1 - dry_env)) * global_amp;
+	env_follow = Amplitude.kr(SoundIn.ar(in_chan)).lag(0.01);
+	sig = (hpf * dry_env * env_follow) + (hpf * (1 - dry_env * env_follow)) * global_amp;
 	delayed_sig = DelayN.ar(sig, maxdelaytime: 10, delaytime: delay_t);
 	verb = FreeVerb.ar(delayed_sig, verb_mix);
 
-	out = Out.ar(0, verb!2);
-}).add;)
+	mixer = XFade2.ar(SoundIn.ar(in_chan), verb, pan: mix);
 
+	out = Out.ar(out_chan, mixer);
+}).add;
 
 
 
