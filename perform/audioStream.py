@@ -56,14 +56,14 @@ class AudioProcessor():
         elif self.mode == 'feature':
             freqs, mags = self.spectral_peaks(spectrum)
 
-            _, mfcc = self.mfcc(spectrum)
+            melbands, mfcc = self.mfcc(spectrum)
             spectral_contrast, _ = self.spectral_contrast(spectrum)
             inharmonicity = self.inharmonicity(freqs, mags)
             dissonance = self.dissonance(freqs, mags)
             pitch_salience = self.pitch_salience(spectrum)
             flatness = self.flatness(spectrum)
             # concat everything into a single array
-            features = np.concatenate((mfcc, spectral_contrast, [inharmonicity, dissonance, pitch_salience, flatness]), dtype=np.float32)
+            features = np.concatenate((mfcc, melbands, spectral_contrast, [inharmonicity, dissonance, pitch_salience, flatness]), dtype=np.float32)
 
         # Appending the fundamental frequency to the features.
         features = np.concatenate((features, [f0]), dtype=np.float32)
