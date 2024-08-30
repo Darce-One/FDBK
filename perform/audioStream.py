@@ -24,7 +24,7 @@ class AudioProcessor():
         if self.mode == 'mfcc':
             self.in_features = 41
         else:
-            self.in_features = 51
+            self.in_features = 91
         self.out_features = 7
         self.model = Network(self.in_features, self.out_features)
         self.model.load_state_dict(torch.load(f"trained_models/trained_model_{mode}.pth"))
@@ -34,7 +34,7 @@ class AudioProcessor():
         self.w = es.Windowing(type='hann', size=self.block_size)
         self.spectrum = es.Spectrum(size=self.block_size)
         self.spectral_peaks = es.SpectralPeaks(maxPeaks=10, minFrequency=30, sampleRate=self.sample_rate) #https://essentia.upf.edu/reference/std_SpectralPeaks.html
-        self.pitch_detect = es.PitchYinFFT(sampleRate=self.sample_rate, frameSize=self.block_size)
+        self.pitch_detect = es.PitchYinFFT(sampleRate=self.sample_rate, frameSize=self.block_size, minFrequency=50 , maxFrequency=5000)
         self.mfcc = es.MFCC(numberCoefficients=NUM_MFCCS, inputSize=int(self.block_size/2)+1)
         self.spectral_contrast = es.SpectralContrast(sampleRate=self.sample_rate, frameSize=self.block_size)
         self.inharmonicity = es.Inharmonicity()
@@ -84,7 +84,7 @@ class AudioProcessor():
             features = self.extract_features(channel)
             params = self.model(torch.tensor(features).unsqueeze(0))[0]
 
-            channel_params[(iter + 1) % self.num_channels, 0] = float(features[-1])
+            channel_params[(iter + 1) % self.num_channels, 0] = float(features[-1])           # frequency
             channel_params[iter, 1] = float(map_range(params[0], new_min=0.5, new_max=10.0))  # amp_ratio = rrand(0.5, 10.0);
             channel_params[iter, 2] = float(map_range(params[1], new_min=0.25, new_max=5.0))  # fm_ratio = rrand(0.25, 5.0);
             channel_params[iter, 3] = float(map_range(params[2], new_min=0.0, new_max=2.0))   # fm_index = rrand(0.0, 2.0);
@@ -120,7 +120,7 @@ def main():
     parser.add_argument('-s', '--sample_rate', type=int, default=44100, help="sets the project sample rate")
     parser.add_argument('-b', '--block_size', type=int, default=2048, help="sets the project block_size. Make sure to use a multiple of 2")
     parser.add_argument('-c', '--channel_count', type=int, default=2, help="number of channels")
-    parser.add_argument('-m', '--mode', choices=['mfcc', 'feature'], help="choose between the 'mfcc' and 'feature' mode")
+    parser.add_argument('-m', '--mode', choices=['mfcc', 'feature'], default='feature', help="choose between the 'mfcc' and 'feature' mode")
 
     # Parse args
     args = parser.parse_args()
