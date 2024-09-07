@@ -35,7 +35,7 @@ class AudioProcessor():
         self.spectrum = es.Spectrum(size=self.block_size)
         self.spectral_peaks = es.SpectralPeaks(maxPeaks=10, minFrequency=30, sampleRate=self.sample_rate) #https://essentia.upf.edu/reference/std_SpectralPeaks.html
         self.pitch_detect = es.PitchYinFFT(sampleRate=self.sample_rate, frameSize=self.block_size, minFrequency=50 , maxFrequency=5000)
-        self.mfcc = es.MFCC(numberCoefficients=NUM_MFCCS, inputSize=int(self.block_size/2)+1)
+        self.mfcc = es.MFCC(numberCoefficients=self.n_mfcc, inputSize=int(self.block_size/2)+1)
         self.spectral_contrast = es.SpectralContrast(sampleRate=self.sample_rate, frameSize=self.block_size)
         self.inharmonicity = es.Inharmonicity()
         self.dissonance = es.Dissonance()
