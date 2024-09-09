@@ -25,8 +25,8 @@ SynthDef.new(\fdbk, {
 	var l_fund, l_amp_ratio, l_fm_ratio, l_fm_index, l_pnoise_amp, l_lpf_freq, l_hpf_freq, l_osc_fm_ratio;
 	var harm, mod, fm, noise, lpf, hpf, sum, env_follow, sig, delayed_sig, verb, mixer, out;
 
-	var lag_t = MouseX.kr(0., 5.);
-	var delay_t = MouseY.kr(0., 5.);
+	var lag_t = MouseX.kr(0.0, 5.0);
+	var delay_t = MouseY.kr(0.0, 5.0);
 
 	l_fund = fund.lag(lag_t);
 	l_amp_ratio = amp_ratio.lag(lag_t);
@@ -78,5 +78,3 @@ SynthDef.new(\fdbk, {
 
 	out = Out.ar(out_chan, mixer);
 }).add;
-
-
